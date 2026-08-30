@@ -1,0 +1,80 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  offline:
+    name: offline suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e ".[dev]"
+
+      # Run first and on its own. If the document and the code disagree about a
+      # threshold, nothing further is worth running.
+      - name: The preregistration binds the code
+        run: python -m pytest tests/test_preregistration.py -v
+
+      - name: Full offline suite
+        run: python -m pytest
+
+      - name: Lint
+        run: |
+          python -m ruff check .
+          python -m ruff format --check .
+
+  database:
+    name: append-only is enforced by the database
+    needs: offline
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: embargo
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+        ports: ["5432:5432"]
+    env:
+      EMBARGO_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/embargo
+      EMBARGO_DSN: postgresql://postgres:postgres@localhost:5432/embargo
+      EMBARGO_WRITER_DSN: postgresql://embargo_ci:ci@localhost:5432/embargo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e ".[dev,db]"
+
+      - name: Migrate
+        run: python -m embargo.migrate
+
+      - name: Migrating twice changes nothing
+        run: python -m embargo.migrate
+
+      - name: A login role that is a member of embargo_writer
+        # Not the owner and not a superuser. Both bypass grants, and a test
+        # suite run as either would pass while proving nothing.
+        run: |
+          psql "$EMBARGO_ADMIN_DSN" -v ON_ERROR_STOP=1 -c \
+            "CREATE ROLE embargo_ci LOGIN PASSWORD 'ci' IN ROLE embargo_writer;"
+
+      - name: The forbidden writes are actually attempted
+        # pipefail is not optional: without it this step exits with tee's status
+        # and a failing suite reads as green.
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m pytest tests/test_append_only.py -v -rs | tee result.txt
+          if grep -q "skipped" result.txt; then
+            echo "::error::append-only tests skipped -- the guarantee went untested"
+            exit 1
+          fi

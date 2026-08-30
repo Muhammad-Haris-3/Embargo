@@ -1,0 +1,87 @@
+{
+  "probed_at": "2026-08-30T12:24:31.081997+00:00",
+  "sample_size": 60,
+  "user_agent": "Embargo/0.1.0 (+https://github.com/Muhammad-Haris-3/Embargo) python-httpx/0.28.1",
+  "freshness": {
+    "api_version": "2.0.5",
+    "data_timestamp": "2026-08-28T09:00:06",
+    "age_hours_at_probe": 51.41,
+    "note": "Observed to advance once a day around 09:00 UTC. Recorded on every run so that a frozen mirror answering 200 is detectable."
+  },
+  "invisibility": {
+    "counts_by_date_field": {
+      "submit": 79892,
+      "qc": 79892,
+      "post": 79892
+    },
+    "counts_are_identical": true,
+    "unposted_cohort_size": 21829,
+    "unposted_records_checked": 60,
+    "unposted_records_exposing_a_submit_date": 0,
+    "queue_is_invisible": true,
+    "note": "Identical counts mean the search index admits a record only once it has posted. Zero pending records among those checked means the live record does not expose a submission under review either."
+  },
+  "disclosure": {
+    "records_checked": 40,
+    "records_disclosing_the_wait": 40,
+    "disclosure_rate": 1.0,
+    "history_unavailable": 0,
+    "examples": [
+      {
+        "nct_id": "NCT04375228",
+        "submitted": "2026-05-20",
+        "posted": "2026-08-03",
+        "wait_days": 75,
+        "results_versions_during_wait": 1
+      },
+      {
+        "nct_id": "NCT05374109",
+        "submitted": "2026-01-09",
+        "posted": "2026-06-09",
+        "wait_days": 151,
+        "results_versions_during_wait": 1
+      },
+      {
+        "nct_id": "NCT06609278",
+        "submitted": "2026-03-26",
+        "posted": "2026-05-07",
+        "wait_days": 42,
+        "results_versions_during_wait": 1
+      },
+      {
+        "nct_id": "NCT03661255",
+        "submitted": "2026-02-28",
+        "posted": "2026-08-19",
+        "wait_days": 172,
+        "results_versions_during_wait": 1
+      },
+      {
+        "nct_id": "NCT03808558",
+        "submitted": "2026-04-03",
+        "posted": "2026-05-22",
+        "wait_days": 49,
+        "results_versions_during_wait": 2
+      }
+    ],
+    "note": "A record disclosing the wait carries results-module revisions dated between its submission and its posting. Gate 3 is only markable where this holds."
+  },
+  "waits": {
+    "n": 500,
+    "median_days": 104.5,
+    "p75_days": 288,
+    "p90_days": 686,
+    "p99_days": 1842,
+    "max_days": 5683,
+    "share_over_180d": 0.354,
+    "share_over_365d": 0.21,
+    "negative_waits": 0,
+    "SELECTION_BIAS": "Conditions on records posted since 2024, which over-selects long waits. Provisional until M1 recomputes by submission cohort. Not a finding."
+  },
+  "partial_dates": {
+    "records_checked": 60,
+    "partial_submit_dates": 0,
+    "partial_post_dates": 0,
+    "note": "PREREGISTRATION.md resolves a month-precision date to the first of that month and requires derived values to be flagged."
+  },
+  "http_calls": 59
+}

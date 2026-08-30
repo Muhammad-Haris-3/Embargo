@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.ruff_cache/
+node_modules/
+.next/
+# Probe output is committed deliberately -- see M0 spec -- but scratch is not.
+artifacts/scratch/
