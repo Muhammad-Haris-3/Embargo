@@ -13,13 +13,14 @@ those two moments, and estimates how many are sitting in that gap right now —
 a number the registry cannot be asked for, because a result under review is
 indistinguishable from one that was never submitted at all.
 
-[**Live site**](https://embargo-silk.vercel.app) ·
+[**Decision memo**](DECISION_MEMO.md) ·
+[Live site](https://embargo-silk.vercel.app) ·
 [The wait](https://embargo-silk.vercel.app/cohorts) ·
 [The register](https://embargo-silk.vercel.app/register) ·
 [Coverage](https://embargo-silk.vercel.app/coverage) ·
 [API](https://embargo-api-kz73.onrender.com/v1/status)
 
-> **Status: M4. Gate 3 fails, and the build is red on purpose.**
+> **Status: M8, deployed. Gate 3 fails, and the build is red on purpose.**
 >
 > [![gates](https://github.com/Muhammad-Haris-3/Embargo/actions/workflows/gates.yml/badge.svg)](https://github.com/Muhammad-Haris-3/Embargo/actions/workflows/gates.yml)
 >
@@ -223,7 +224,7 @@ whose queue is gone.
 | [`Embargo_M5_Summary.md`](Embargo_M5_Summary.md) | The read-only API, and an endpoint that refuses |
 | [`Embargo_M6_Summary.md`](Embargo_M6_Summary.md) | The application, written and not yet built |
 | `METHODS.md` | Every convention, and the exploratory work, labelled as such |
-| `DECISION_MEMO.md` | The finding in two pages, no technical background needed — from M8 |
+| [`DECISION_MEMO.md`](DECISION_MEMO.md) | **The finding in two pages, no technical background needed** |
 
 ---
 
