@@ -96,7 +96,7 @@ tempted.
 | **The writer role holds `INSERT` and `SELECT` and nothing else** — by `REVOKE`, not convention. `tests/test_append_only.py` connects as that role and asserts `UPDATE` raises | An append-only claim nobody ever tried to violate |
 | **`CHECK (committed_at::date >= freeze_date)`** on the estimate register | Backdating — committing an estimate for a date whose data cannot exist yet |
 | **Gates before findings.** Three gates must pass before the primary outcome is computed at all | A robustness check run afterwards, on a result someone already likes |
-| **A fixed seed for the Gate 1 sample** | Redrawing the sample until it passes |
+| **A fixed seed for the Gate 1 sample**, drawn over an order fixed in SQL | Redrawing the sample until it passes — and a seeded draw that is not actually reproducible |
 | **Constants asserted against the preregistration in both directions** | A document that states one threshold while the code uses another — and a constant added to the code that was never written down |
 | **Every version cached on first sight** | An undocumented endpoint being withdrawn and taking the evidence with it |
 | **Coverage published beside every rate** | A gap in collection reading as a period in which nothing was posted |
@@ -197,6 +197,7 @@ whose queue is gone.
 | [`Embargo_SRS_v1.0.md`](Embargo_SRS_v1.0.md) | FR-1→32, NFR-1→12, M0–M8, R-1→10 |
 | [`Embargo_M0_Spec.md`](Embargo_M0_Spec.md) | What M0 must establish, and what it found |
 | [`Embargo_M1_Summary.md`](Embargo_M1_Summary.md) | The wait by submission cohort, and the amendment it forced |
+| [`Embargo_M2_Summary.md`](Embargo_M2_Summary.md) | Reconstruction, the knowability guard, and Gate 1 |
 | `METHODS.md` | Every convention, and the exploratory work, labelled as such |
 | `DECISION_MEMO.md` | The finding in two pages, no technical background needed — from M8 |
 
