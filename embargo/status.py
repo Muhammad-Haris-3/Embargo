@@ -38,6 +38,13 @@ def main(argv: list[str] | None = None) -> int:
     window_start = today - dt.timedelta(days=args.days - 1)
 
     with connect() as conn, conn.cursor() as cur:
+        # Collection began when the first run opened. Days before that are not
+        # gaps: nothing was expected of them. A gap means a day we were supposed
+        # to look and did not, and calling anything else a gap makes the real
+        # ones easy to stop reading.
+        cur.execute("SELECT min((started_at AT TIME ZONE 'UTC')::date) FROM ingest_runs")
+        collection_start = cur.fetchone()[0]
+
         cur.execute("SELECT count(*), count(DISTINCT nct_id) FROM landing_study")
         land_rows, land_trials = cur.fetchone()
         cur.execute("SELECT count(*), count(DISTINCT nct_id) FROM record_versions")
@@ -64,7 +71,17 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"landing_study    {land_rows:>9,} rows / {land_trials:,} trials")
     print(f"record_versions  {ver_rows:>9,} rows / {ver_trials:,} trials historied")
+    if collection_start is None:
+        print()
+        print("nothing has been collected yet")
+        return 1
+    print(
+        f"collecting since {collection_start.isoformat()} ({(today - collection_start).days + 1} days)"
+    )
     print()
+
+    # Never report on days before there was a collector to miss them.
+    window_start = max(window_start, collection_start)
 
     print(f"{'day (UTC)':<12} {'ok':>3} {'fail':>5} {'open':>5} {'rows':>9}")
     day = window_start
