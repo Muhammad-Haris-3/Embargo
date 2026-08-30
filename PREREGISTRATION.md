@@ -291,3 +291,45 @@ earlier amendment has done. `tests/test_preregistration.py` therefore now reads
 the document in order and takes the **last** stated value as the effective one,
 while asserting that the original table still says 2555 — so supersession is
 visible and silent editing still fails the build.
+
+### Amendment 2 — 2026-08-30 — sampling for the deadline-drift study
+
+**Written before any drift edit was counted.** No result exists for the
+quantity these constants govern, and none can until they are fixed, which is
+the only condition under which fixing them is worth anything.
+
+The secondary study needs the primary completion date at every revision of a
+record. There is no bulk endpoint for that: it is one request per revision, and
+the collected history is already 74,400 revisions across 4,398 records, growing
+daily. Measured at M0, a history request costs about 0.98s, so the full set is
+roughly twenty hours of polling somebody else's undocumented endpoint. That is
+not a reasonable thing to do, and doing it in pieces over weeks would mean the
+sample was defined by whatever had finished when someone looked.
+
+So the study runs on a sample fixed here, drawn under a fixed seed, exactly as
+Gate 1 is.
+
+| Constant | Value | Where |
+|---|---|---|
+| Drift sample size, trials | `150` | `prereg.DRIFT_SAMPLE_SIZE` |
+| Drift sample seed | `20260830` | `prereg.DRIFT_SEED` |
+
+Three things are fixed by this amendment:
+
+1. **The sample is drawn once, under the seed, from records whose history has
+   been collected**, and it is not redrawn if the rate it produces is
+   uninteresting. Growth of the collected history does not enlarge the sample:
+   the draw is deterministic over an ordering fixed in SQL.
+
+2. **The rate is reported with its uncertainty**, and 150 trials is a small
+   sample for a rate this study cannot bound in advance. A confidence interval
+   accompanies every figure, and a figure without one is not to be quoted.
+
+3. **A sample this size cannot support a claim about any individual sponsor**,
+   and none will be made. Sponsor class is reported as a breakdown of the
+   sample and nothing more.
+
+**This amendment does not lift the reporting restriction above it.** The
+secondary study is still reported only if the primary gates pass, and Gate 3
+fails.
+

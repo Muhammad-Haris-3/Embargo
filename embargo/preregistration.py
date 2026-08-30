@@ -38,6 +38,13 @@ MIN_COHORT_COVERAGE: Final = 0.98
 REPORTING_DEADLINE_MONTHS: Final = 12
 DRIFT_IS_FORWARD_EDIT: Final = True
 
+# Amendment 2. The primary completion date at every revision costs one request
+# per revision, and the collected history is already 74,400 of them -- about
+# twenty hours of polling an undocumented endpoint. The study runs on a seeded
+# sample fixed before any edit was counted.
+DRIFT_SAMPLE_SIZE: Final = 150
+DRIFT_SEED: Final = 20260830
+
 # --- conventions that decide boundary cases ---------------------------------
 # Each of these could otherwise be chosen after seeing which way it moved the
 # headline. See PREREGISTRATION.md for the reasoning behind all three.
