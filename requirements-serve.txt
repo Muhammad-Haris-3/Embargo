@@ -1,0 +1,11 @@
+# The serving API only.
+#
+# It reads precomputed rows and never estimates (FR-26), which is what keeps it
+# inside a 512 MB free-tier container. Estimation runs in GitHub Actions, where
+# memory is somebody else's problem.
+#
+# httpx is absent on purpose: the API never calls the registry. Only the
+# collector does, and the collector does not run here.
+fastapi>=0.115
+uvicorn[standard]>=0.30
+psycopg[binary]>=3.2

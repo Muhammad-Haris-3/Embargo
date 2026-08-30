@@ -33,8 +33,30 @@ app = FastAPI(
 )
 
 
+class WritableCredentialInProduction(RuntimeError):
+    """The API was given a credential that can write."""
+
+
 def reader_dsn() -> str:
-    return os.environ.get("EMBARGO_READER_DSN") or os.environ.get("EMBARGO_DSN", "")
+    """The read-only connection string.
+
+    In production this refuses to fall back to `EMBARGO_DSN`. That variable
+    belongs to the collector and holds `INSERT`; if this service could reach for
+    it, the append-only guarantee would rest on the API never *choosing* to
+    write, rather than on its being unable to. Locally the fallback is a
+    convenience, because there the only database is a developer's own.
+    """
+    reader = os.environ.get("EMBARGO_READER_DSN")
+    if reader:
+        return reader
+    if os.environ.get("EMBARGO_ENV") == "production":
+        raise WritableCredentialInProduction(
+            "EMBARGO_READER_DSN is unset. The API will not fall back to "
+            "EMBARGO_DSN in production: that role can INSERT, and this service "
+            "must not be able to write. Set EMBARGO_READER_DSN to the "
+            "embargo_api role."
+        )
+    return os.environ.get("EMBARGO_DSN", "")
 
 
 @contextmanager
