@@ -33,6 +33,7 @@ import argparse
 import datetime as dt
 import json
 import sys
+import time
 from typing import Any
 
 from .clock import today_utc
@@ -57,6 +58,17 @@ DEFAULT_HISTORY_BUDGET = 400
 # Rows per INSERT. Each statement is one round trip, and round trip is the
 # entire cost of this job against a hosted database.
 INSERT_BATCH = 500
+
+# Wall-clock box for the history sweep, in minutes.
+#
+# The sweep used to be bounded by call count alone, and a budget of 3,000 ran
+# 47.5 minutes into a 50 minute job and was killed with 100 calls left. A count
+# is the wrong bound: what runs out is time, and per-call latency is not ours to
+# predict. Measured against the live endpoint, a record history costs about
+# 0.98s, of which only 0.35s is our own throttle.
+#
+# The count budget stays as a secondary cap, but this is what actually governs.
+HISTORY_MINUTES = 25
 
 
 def posted_since(since: dt.date) -> str:
@@ -181,24 +193,45 @@ def sweep_postings(
     return appended
 
 
-def sweep_history(conn: Any, state: Run, source: CtGov, budget: int) -> int:
+def sweep_history(conn: Any, state: Run, source: CtGov, budget: int, minutes: float) -> int:
+    """Fetch revision lists until the budget or the clock runs out.
+
+    Stopping early is normal and is not a failure. The backlog is tens of
+    thousands of records and is drained over days; what matters is that a run
+    ends on its own terms, closes its row in the log, and leaves the rest for
+    tomorrow. A run killed by the job timeout does none of those things.
+    """
+    deadline = time.monotonic() + minutes * 60
     appended = 0
+    done = 0
     targets = needs_history(conn, budget)
+    stopped = "drained"
+
     for i, nct_id in enumerate(targets, start=1):
+        if time.monotonic() >= deadline:
+            stopped = "deadline"
+            break
         try:
             appended += land_history(conn, state, source, nct_id)
+            done += 1
         except Exception as exc:  # noqa: BLE001
             # One unavailable record must not end the sweep. It is recorded and
             # retried on the next run, because it stays in needs_history().
             state.detail.setdefault("history_errors", []).append(f"{nct_id}: {exc!r}")
         if i % 50 == 0:
             conn.commit()
+    else:
+        if len(targets) == budget:
+            stopped = "budget"
+
     conn.commit()
     state.note(
         history_requested=len(targets),
+        history_completed=done,
         history_rows_appended=appended,
         history_budget=budget,
-        history_backlog_drained=len(targets) < budget,
+        history_minutes=minutes,
+        history_stopped_on=stopped,
     )
     return appended
 
@@ -214,6 +247,12 @@ def main(argv: list[str] | None = None) -> int:
         "or the start of the census window for a backfill)",
     )
     parser.add_argument("--history-budget", type=int, default=DEFAULT_HISTORY_BUDGET)
+    parser.add_argument(
+        "--history-minutes",
+        type=float,
+        default=HISTORY_MINUTES,
+        help="wall-clock box for the history sweep; this is what actually governs",
+    )
     parser.add_argument("--max-pages", type=int, default=None)
     parser.add_argument("--skip-history", action="store_true", help="postings sweep only")
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
@@ -235,7 +274,9 @@ def main(argv: list[str] | None = None) -> int:
         with connect() as conn, run_log(conn, args.job, source=source) as state:
             appended = sweep_postings(conn, state, source, since, max_pages=args.max_pages)
             if not args.skip_history:
-                appended += sweep_history(conn, state, source, args.history_budget)
+                appended += sweep_history(
+                    conn, state, source, args.history_budget, args.history_minutes
+                )
             state.rows_appended = appended
             state.http_calls = http.calls
             print(json.dumps({"run_id": state.run_id, **state.detail}, indent=2, default=str))

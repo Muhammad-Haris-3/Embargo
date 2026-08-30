@@ -22,8 +22,11 @@ on:
         type: choice
         options: ["daily", "backfill"]
       history_budget:
-        description: "history calls this run"
+        description: "history calls this run (secondary cap)"
         default: "400"
+      history_minutes:
+        description: "wall-clock box for the history sweep"
+        default: "25"
       run_probe:
         description: "also re-characterise the source"
         type: boolean
@@ -34,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     # A collector that hangs on an unresponsive source must not hold the
     # scheduler; tomorrow it runs again and the lookback window covers the gap.
-    timeout-minutes: 50
+    timeout-minutes: 40
     env:
       EMBARGO_DSN: ${{ secrets.EMBARGO_DSN }}
       EMBARGO_CONTACT: ${{ vars.EMBARGO_CONTACT }}
@@ -70,7 +73,7 @@ jobs:
         run: |
           python -m embargo.ingest \
             --job "${{ inputs.job || 'daily' }}" \
-            --history-budget "${{ inputs.history_budget || '400' }}"
+            --history-budget "${{ inputs.history_budget || '400' }}"             --history-minutes "${{ inputs.history_minutes || '25' }}"
 
   probe:
     # The source characterisation, re-run weekly. Its job is to notice when
