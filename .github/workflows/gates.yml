@@ -1,0 +1,56 @@
+name: gates
+
+# The build is red on purpose.
+#
+# `embargo.run_gates` returns the verdict as its exit status, so a failed gate
+# fails this job. Gate 3 fails. Therefore this job is red, and stays red until
+# the validation problem is resolved rather than tuned away.
+#
+# A green badge here while Gate 3 fails would mean the exit status had been
+# softened, which is the one outcome PREREGISTRATION.md exists to make
+# impossible.
+
+on:
+  schedule:
+    - cron: "23 8 * * 1" # Mondays, after the weekly probe
+  workflow_dispatch:
+    inputs:
+      gate:
+        description: "run a single gate (1, 2, 3) or leave blank for all"
+        default: ""
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EMBARGO_DSN: ${{ secrets.EMBARGO_DSN }}
+      EMBARGO_CONTACT: ${{ vars.EMBARGO_CONTACT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -e ".[db]"
+
+      - name: Is there a database yet
+        id: check
+        run: |
+          if [ -z "$EMBARGO_DSN" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::EMBARGO_DSN is unset -- gates not run."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run the gates
+        if: steps.check.outputs.configured == 'true'
+        shell: bash
+        run: |
+          set -o pipefail
+          ARGS=""
+          if [ -n "${{ inputs.gate }}" ]; then ARGS="--gate ${{ inputs.gate }}"; fi
+          python -m embargo.run_gates $ARGS | tee gates.out
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat gates.out >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

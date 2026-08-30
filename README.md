@@ -13,8 +13,20 @@ those two moments, and estimates how many are sitting in that gap right now —
 a number the registry cannot be asked for, because a result under review is
 indistinguishable from one that was never submitted at all.
 
-> **Status: M0, collecting.** No queue estimate is published yet, and no wait is
-> reported as a finding. [`PREREGISTRATION.md`](PREREGISTRATION.md) fixes the
+> **Status: M4. Gate 3 fails, and the build is red on purpose.**
+>
+> [![gates](https://github.com/Muhammad-Haris-3/Embargo/actions/workflows/gates.yml/badge.svg)](https://github.com/Muhammad-Haris-3/Embargo/actions/workflows/gates.yml)
+>
+> Gates 1 and 2 pass. **Gate 3 fails**: the estimator misses the realised queue
+> by up to 90% against a 10% tolerance, at six of nine freeze dates, in both
+> directions. The preregistration says a failed Gate 3 is published and no queue
+> estimate is published at all. Both hold — **there is no figure in this
+> repository for how many results are in the queue today**, and there will not
+> be until an estimator passes.
+> [`Embargo_M4_Summary.md`](Embargo_M4_Summary.md) is the failure and its
+> diagnosis.
+>
+> **A green badge here would be the bug.** [`PREREGISTRATION.md`](PREREGISTRATION.md) fixes the
 > three gates, the freeze grid and the conventions that have to be cleared
 > first, and all of them were written before the estimator existed.
 > [`Embargo_M0_Spec.md`](Embargo_M0_Spec.md) records what M0 established,
@@ -201,6 +213,7 @@ whose queue is gone.
 | [`Embargo_M1_Summary.md`](Embargo_M1_Summary.md) | The wait by submission cohort, and the amendment it forced |
 | [`Embargo_M2_Summary.md`](Embargo_M2_Summary.md) | Reconstruction, the knowability guard, and Gate 1 |
 | [`Embargo_M3_Summary.md`](Embargo_M3_Summary.md) | Gate 2, the census, and gates made to fail offline |
+| [`Embargo_M4_Summary.md`](Embargo_M4_Summary.md) | The estimator, and Gate 3 failing |
 | `METHODS.md` | Every convention, and the exploratory work, labelled as such |
 | `DECISION_MEMO.md` | The finding in two pages, no technical background needed — from M8 |
 

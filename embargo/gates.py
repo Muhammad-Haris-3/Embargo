@@ -27,6 +27,7 @@ from .preregistration import (
     CENSUS_START_YEAR,
     GATE1_SAMPLE_SIZE,
     GATE1_SEED,
+    QUEUE_TOL,
 )
 
 
@@ -224,5 +225,98 @@ def gate2_census_agrees(
             "years": f"{start}-{end}",
             "ours": ours,
             "failures": failures,
+        },
+    )
+
+
+def gate3_estimator_recovers(
+    conn: Any,
+    records: list[dict[str, Any]],
+    run_id: int,
+    *,
+    tol: float = QUEUE_TOL,
+) -> GateResult:
+    """Gate 3 -- the estimator recovers a queue whose size is already known.
+
+    The gate the project exists to pass, and the first that can fail on its
+    merits rather than on plumbing.
+
+    Two conditions, both preregistered:
+
+    1. At every **mature** grid date, `Qhat` must be within `QUEUE_TOL` of
+       `Qstar`.
+    2. At **any** grid date, mature or not, `Qhat` below `Qstar` is a failure.
+       `Qstar` is a lower bound built from disclosures that have already
+       happened; an estimate beneath it has contradicted something on the table.
+
+    Every point is committed to the register before it is judged, including the
+    ones that fail. A register holding only the estimates that turned out well
+    would answer a different question than the one asked.
+    """
+    from .queue import commit, evaluate, freeze_grid
+
+    failures: list[dict[str, Any]] = []
+    checked = 0
+    mature_checked = 0
+    worst = 0.0
+    points = []
+
+    for freeze_date in freeze_grid():
+        point = evaluate(records, freeze_date)
+        commit(conn, run_id, point)
+        conn.commit()
+        points.append(point)
+
+        error = point.relative_error
+        summary = {
+            "freeze_date": freeze_date.isoformat(),
+            "q_hat": round(point.estimate.q_hat, 1),
+            "q_star_lower": point.q_star,
+            "relative_error": round(error, 4) if error is not None else None,
+            "mature": point.mature,
+        }
+
+        # Every grid date is examined, whichever way it fails. Counting only
+        # the ones that reached the tolerance test produced "6/0 failed", which
+        # is not a possible thing for a gate to report.
+        checked += 1
+
+        if point.below_the_bound:
+            failures.append({**summary, "reason": "below the realised lower bound"})
+            continue
+
+        if point.mature:
+            mature_checked += 1
+            if error is not None:
+                worst = max(worst, abs(error))
+                if abs(error) > tol:
+                    failures.append({**summary, "reason": f"outside tolerance {tol}"})
+
+    return GateResult(
+        gate="estimator_recovers",
+        passed=mature_checked > 0 and not failures,
+        n_checked=checked,
+        n_failed=len(failures),
+        worst_diff=round(worst, 4) or None,
+        detail={
+            "tolerance": tol,
+            "mature_dates_checked": mature_checked,
+            "grid": [p.freeze_date.isoformat() for p in points],
+            "mature_dates": [p.freeze_date.isoformat() for p in points if p.mature],
+            "points": [
+                {
+                    "freeze_date": p.freeze_date.isoformat(),
+                    "q_hat": round(p.estimate.q_hat, 1),
+                    "q_star_lower": p.q_star,
+                    "relative_error": round(p.relative_error, 4)
+                    if p.relative_error is not None
+                    else None,
+                    "mature": p.mature,
+                    "excluded_share": round(p.estimate.excluded_share, 4),
+                }
+                for p in points
+            ],
+            "failures": failures,
+            "no_mature_dates": mature_checked == 0,
         },
     )

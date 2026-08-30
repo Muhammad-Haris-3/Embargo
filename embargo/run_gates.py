@@ -17,20 +17,24 @@ import sys
 from .config import settings
 from .ctgov import CtGov
 from .db import connect
-from .gates import gate1_capture_is_faithful, gate2_census_agrees
+from .gates import (
+    gate1_capture_is_faithful,
+    gate2_census_agrees,
+    gate3_estimator_recovers,
+)
 from .http import Http
 from .runlog import run as run_log
 
-# Gate 3 arrives at M4. Until then the runner says so on every invocation,
-# because a green line reading 'all gates passed' would be true of the gates
-# that exist and false about the project.
+# A green line reading 'all gates passed' must be true of the project, not
+# only of the gates that happen to exist, so the runner reports what exists,
+# what ran, and what passed as three separate numbers.
 TOTAL = 3
-IMPLEMENTED = 2
+IMPLEMENTED = 3
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the preregistered gates")
-    parser.add_argument("--gate", type=int, choices=(1, 2), default=None, help="run one gate")
+    parser.add_argument("--gate", type=int, choices=(1, 2, 3), default=None, help="run one gate")
     parser.add_argument("--size", type=int, default=None, help="override the sample size")
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
 
@@ -50,6 +54,12 @@ def main(argv: list[str] | None = None) -> int:
                 results.append(result)
             if args.gate in (None, 2):
                 result = gate2_census_agrees(conn, source)
+                result.record(conn)
+                results.append(result)
+            if args.gate in (None, 3):
+                from .waits import read_records
+
+                result = gate3_estimator_recovers(conn, read_records(conn), state.run_id)
                 result.record(conn)
                 results.append(result)
             state.http_calls = http.calls
