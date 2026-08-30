@@ -232,4 +232,62 @@ Any of these is a publishable result and will be published.
 
 ## Amendments
 
-*None yet.*
+### Amendment 1 — 2026-08-30 — the maturity horizon, raised because it bound
+
+**Written after seeing M1 cohort data. It is post-hoc, and it is weaker
+evidence than anything fixed in advance.** Nothing above the *Amendments* line
+is edited: the original table still records 2555, which is the commitment that
+was made and the one this amendment departs from.
+
+The horizon was fixed at 2555 days with a stated reason:
+
+> It is set from the shape of the wait distribution, not from convenience: an
+> unweighted probe of 1,000 posted trials put the 99th percentile of `wait` at
+> 2,075 days, and the horizon must sit beyond that with room to spare.
+
+and a stated consequence:
+
+> If M1 finds the 99th percentile beyond 2555 days, that is an amendment,
+> recorded below, and not a silent edit.
+
+M1 computed the wait by submission cohort over all 79,892 records, and the tail
+is longer than the M0 probe could see:
+
+| Mature cohort | p99 | Over the horizon by |
+|---:|---:|---:|
+| 2011 | 2,963 days | 408 days |
+| 2012 | 2,750 days | 195 days |
+
+The probe was a single biased sample of 500 records and its p99 was the least
+reliable number in it. The horizon exists so that a cohort called mature has
+essentially finished resolving; with two mature cohorts still receiving a
+1-in-100 case after the horizon passes, the definition did not do what it said.
+
+| Constant | Value | Where |
+|---|---|---|
+| Cohort maturity horizon | `3285` days | `prereg.MATURITY_DAYS` |
+
+Three things are fixed by this amendment:
+
+1. **The horizon rises to 3285 days**, nine years, which clears the worst
+   observed cohort p99 by 322 days. That is "room to spare" as the original
+   clause required. 3000 days was available and was not taken: it clears the
+   worst p99 by 37 days, which is not room to spare, and choosing it would have
+   been picking the cheaper number after seeing which cohorts it saved.
+
+2. **It costs two cohorts, and that cost is the point.** The 2017 and 2018
+   cohorts stop being quotable. The pooled mature set falls from 38,052 waits
+   across 2008–2018 to 26,984 across 2008–2016, and the headline figures are
+   recomputed accordingly. A preregistration that never removes anything from
+   the author is not doing work.
+
+3. **Figures already published under the old horizon are not retracted, they
+   are dated.** `Embargo_M1_Summary.md` reports both, and says which horizon was
+   in force for each. Deleting the superseded number would hide the amendment
+   rather than record it.
+
+This amendment changes a constant that the original table fixed, which no
+earlier amendment has done. `tests/test_preregistration.py` therefore now reads
+the document in order and takes the **last** stated value as the effective one,
+while asserting that the original table still says 2555 — so supersession is
+visible and silent editing still fails the build.

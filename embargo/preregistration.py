@@ -24,7 +24,7 @@ FREEZE_GRID_STEP_MONTHS: Final = 12
 # the horizon has to sit beyond that with room to spare. That probe conditions
 # on trials that posted, which over-selects long waits; M1 recomputes it by
 # cohort, and a p99 beyond this value is an amendment, not an edit.
-MATURITY_DAYS: Final = 2555
+MATURITY_DAYS: Final = 3285
 
 # --- gates ------------------------------------------------------------------
 QUEUE_TOL: Final = 0.10  # relative, Gate 3

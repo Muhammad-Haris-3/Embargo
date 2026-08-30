@@ -36,12 +36,24 @@ def doc_text() -> str:
     return DOC.read_text(encoding="utf-8")
 
 
+# What the document originally committed, for constants an amendment has since
+# superseded. The point of an append-only preregistration is that the original
+# number stays legible, so these assert the old value is still on the page --
+# an amendment must ADD a row, never edit the one above the Amendments line.
+ORIGINAL_COMMITMENTS = {"MATURITY_DAYS": "2555"}
+
+
 def fixed_table() -> str:
     """The section between the 'Fixed before the fact' heading and the next one."""
     text = doc_text()
     start = text.index("## Fixed before the fact")
     end = text.index("## Universe", start)
     return text[start:end]
+
+
+def amendments() -> str:
+    text = doc_text()
+    return text[text.index("## Amendments") :]
 
 
 def coerce(raw: str):
@@ -68,10 +80,10 @@ def coerce(raw: str):
     return token
 
 
-def table_rows() -> list[tuple[str, list[str], list[str]]]:
+def rows_in(section: str) -> list[tuple[str, list[str], list[str]]]:
     """(label, backticked values, constant names) for each data row."""
     rows = []
-    for line in fixed_table().splitlines():
+    for line in section.splitlines():
         m = ROW.match(line)
         if not m:
             continue
@@ -86,12 +98,69 @@ def table_rows() -> list[tuple[str, list[str], list[str]]]:
     return rows
 
 
+def table_rows() -> list[tuple[str, list[str], list[str]]]:
+    """Every constant row in the document, original table first, amendments after.
+
+    Document order is authoritative. An amendment that restates a constant
+    supersedes the row above it, and the later row is the effective one --
+    which is how an append-only document changes its mind without anybody
+    editing what it said before.
+    """
+    return rows_in(fixed_table()) + rows_in(amendments())
+
+
 def test_the_table_was_found():
-    rows = table_rows()
+    rows = rows_in(fixed_table())
     assert len(rows) >= 15, f"only parsed {len(rows)} rows; the table format moved"
 
 
-@pytest.mark.parametrize("label,values,consts", table_rows(), ids=lambda x: None)
+def test_the_original_commitment_is_still_on_the_page():
+    """A superseded constant must still show what was promised first.
+
+    If an amendment could quietly rewrite the row above the Amendments line,
+    the document would record only its current opinion, and a preregistration
+    that records only its current opinion is a README.
+    """
+    original = {
+        consts[0]: values[0] for _, values, consts in rows_in(fixed_table()) if len(consts) == 1
+    }
+    for name, expected in ORIGINAL_COMMITMENTS.items():
+        assert original.get(name) == expected, (
+            f"{name} was committed as {expected} and the original table now says "
+            f"{original.get(name)}; amendments append, they do not edit"
+        )
+
+
+def effective_rows() -> list[tuple[str, list[str], list[str]]]:
+    """One row per constant: the last one the document states."""
+    latest: dict[tuple[str, ...], tuple[str, list[str], list[str]]] = {}
+    for label, values, consts in table_rows():
+        latest[tuple(consts)] = (label, values, consts)
+    return list(latest.values())
+
+
+def test_an_amendment_supersedes_rather_than_merely_repeating():
+    """Where a constant is stated twice, the code must follow the later value.
+
+    This is the mechanism that lets an append-only document change its mind. If
+    it broke, the most likely symptom would be silent: the code agreeing with a
+    number the document has already superseded.
+    """
+    all_rows = table_rows()
+    names = [tuple(c) for _, _, c in all_rows]
+    restated = {n for n in names if names.count(n) > 1}
+    assert restated, "no constant has been superseded yet; this test is inert"
+
+    for key in restated:
+        stated = [values for _, values, consts in all_rows if tuple(consts) == key]
+        first, last = coerce(stated[0][0]), coerce(stated[-1][0])
+        assert first != last, f"{key[0]} is restated with an unchanged value"
+        actual = getattr(prereg, key[0])
+        assert actual == last, f"{key[0]} is {actual!r}; the effective value is {last!r}"
+        assert actual != first, f"{key[0]} still holds the superseded value {first!r}"
+
+
+@pytest.mark.parametrize("label,values,consts", effective_rows(), ids=lambda x: None)
 def test_doc_value_matches_code(label, values, consts):
     assert values, f"row {label!r} states no value"
 
@@ -132,11 +201,14 @@ def test_amendments_section_is_present():
     assert "## Amendments" in doc_text()
 
 
-def test_maturity_horizon_clears_the_probed_p99():
+def test_maturity_horizon_clears_the_measured_p99():
     """The stated reason for MATURITY_DAYS has to survive contact with the code.
 
-    2555 days is chosen to sit beyond the probed 99th percentile of the wait
-    (2,075 days) with room to spare. If someone lowers it, this fails and points
-    at the paragraph that has to be amended.
+    Amendment 1 raised the horizon to 3285 days so that it clears the worst
+    cohort p99 measured at M1 -- 2,963 days, the 2011 cohort -- with room to
+    spare. The M0 probe put it at 2,075 and was wrong, which is why this now
+    asserts against the measured figure rather than the probed one. If someone
+    lowers the horizon, this fails and points at the amendment that has to be
+    written.
     """
-    assert prereg.MATURITY_DAYS > 2075
+    assert prereg.MATURITY_DAYS > 2963

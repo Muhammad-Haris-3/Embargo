@@ -17,8 +17,9 @@ indistinguishable from one that was never submitted at all.
 > reported as a finding. [`PREREGISTRATION.md`](PREREGISTRATION.md) fixes the
 > three gates, the freeze grid and the conventions that have to be cleared
 > first, and all of them were written before the estimator existed.
-> [`Embargo_M0_Spec.md`](Embargo_M0_Spec.md) records what M0 has established so
-> far, including the two properties that could have ended the project.
+> [`Embargo_M0_Spec.md`](Embargo_M0_Spec.md) records what M0 established,
+> including the two properties that could have ended the project, and
+> [`Embargo_M1_Summary.md`](Embargo_M1_Summary.md) has the wait by cohort.
 
 ---
 
@@ -75,7 +76,7 @@ is measured, and two of them decided whether the project was possible.
 | **A posted record discloses its own wait** | 40 of 40 recently posted records carried results revisions dated between submission and posting. This is the mechanism every later validation rests on, and its failure is listed under falsification |
 | **21,829 completed trials** have no posted results for primary completions in a single 15-month window | The population the queue is drawn from is not small |
 | **The source refuses a client that misrepresents itself** | `Embargo/0.1.0` alone gets 403 from httpx; so does a browser-shaped string. `Embargo/0.1.0 (+contact) python-httpx/0.28.1` is served. The rule is not "no unknown clients", it is "do not claim to be something you are not" |
-| **Provisionally, the median wait is around 100 days** | And 21% exceed a year. On a sample that knowingly over-selects long waits, labelled `SELECTION_BIAS` in the artifact, and expected to shrink when M1 recomputes it by cohort |
+| **The median wait is 81 days, and 13.6% exceed a year** | Computed at M1 over 26,984 waits from mature submission cohorts, 2008–2016. This replaces the M0 probe figure of ~100 days, which was biased upward exactly as M0 predicted it would be. See [`Embargo_M1_Summary.md`](Embargo_M1_Summary.md) |
 | **0 of 60 records used month-precision dates** | The partial-date convention is preregistered anyway. A convention adopted after meeting the first awkward record is a convention chosen to taste |
 
 ### One check worth singling out
@@ -195,7 +196,8 @@ whose queue is gone.
 | [`PREREGISTRATION.md`](PREREGISTRATION.md) | The gates, the grid, the conventions. Fixed before the estimator existed |
 | [`Embargo_SRS_v1.0.md`](Embargo_SRS_v1.0.md) | FR-1→32, NFR-1→12, M0–M8, R-1→10 |
 | [`Embargo_M0_Spec.md`](Embargo_M0_Spec.md) | What M0 must establish, and what it found |
-| `METHODS.md` | Every convention, and the exploratory work, labelled as such — from M1 |
+| [`Embargo_M1_Summary.md`](Embargo_M1_Summary.md) | The wait by submission cohort, and the amendment it forced |
+| `METHODS.md` | Every convention, and the exploratory work, labelled as such |
 | `DECISION_MEMO.md` | The finding in two pages, no technical background needed — from M8 |
 
 ---

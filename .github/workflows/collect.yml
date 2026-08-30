@@ -77,6 +77,16 @@ jobs:
             --history-budget "${{ inputs.history_budget || '400' }}" \
             --history-minutes "${{ inputs.history_minutes || '25' }}"
 
+      # Put the coverage report in the run summary, so the M0 streak is
+      # visible on the run itself rather than only to someone who remembers
+      # to go and ask. It must not fail the job: status exits non-zero until
+      # the streak is met, and that is a statement about the calendar, not
+      # about whether this run worked.
+      - name: Coverage
+        if: steps.check.outputs.configured == 'true'
+        run: |
+          python -m embargo.status >> "$GITHUB_STEP_SUMMARY" || true
+
   probe:
     # The source characterisation, re-run weekly. Its job is to notice when
     # something the design rests on stops being true -- the queue becoming
