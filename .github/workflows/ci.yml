@@ -46,7 +46,6 @@ jobs:
     env:
       EMBARGO_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/embargo
       EMBARGO_DSN: postgresql://postgres:postgres@localhost:5432/embargo
-      EMBARGO_WRITER_DSN: postgresql://embargo_ci:ci@localhost:5432/embargo
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -60,12 +59,32 @@ jobs:
       - name: Migrating twice changes nothing
         run: python -m embargo.migrate
 
-      - name: A login role that is a member of embargo_writer
-        # Not the owner and not a superuser. Both bypass grants, and a test
-        # suite run as either would pass while proving nothing.
+      # Provision through the same path a deployment uses, rather than hand-
+      # rolling a role here. A CI job that creates the role itself tests the
+      # grants and leaves bootstrap untested -- which is how `CREATE ROLE ...
+      # PASSWORD %s` reached a real database before anyone found out that
+      # utility statements do not take bound parameters.
+      #
+      # The generated password goes to a file and is never echoed. It is a
+      # throwaway on a container that dies with the job, and printing it anyway
+      # would model exactly the habit this project should not have.
+      - name: Provisioning works
+        shell: bash
         run: |
-          psql "$EMBARGO_ADMIN_DSN" -v ON_ERROR_STOP=1 -c \
-            "CREATE ROLE embargo_ci LOGIN PASSWORD 'ci' IN ROLE embargo_writer;"
+          set -o pipefail
+          python -m embargo.bootstrap --admin-dsn "$EMBARGO_ADMIN_DSN" > bootstrap.out
+          DSN=$(grep -A1 'EMBARGO_DSN secret' bootstrap.out | tail -n1)
+          test -n "$DSN"
+          echo "::add-mask::$DSN"
+          echo "EMBARGO_WRITER_DSN=$DSN" >> "$GITHUB_ENV"
+          grep -q 'embargo_app: created' bootstrap.out
+
+      - name: Provisioning twice leaves the passwords alone
+        shell: bash
+        run: |
+          python -m embargo.bootstrap --admin-dsn "$EMBARGO_ADMIN_DSN" > second.out
+          grep -q 'embargo_app: unchanged' second.out
+          grep -q 'embargo_api: unchanged' second.out
 
       - name: The forbidden writes are actually attempted
         # pipefail is not optional: without it this step exits with tee's status

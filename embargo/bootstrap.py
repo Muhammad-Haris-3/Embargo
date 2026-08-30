@@ -27,6 +27,8 @@ import secrets
 import sys
 from urllib.parse import quote, urlsplit, urlunsplit
 
+from psycopg import sql
+
 from .db import connect
 from .migrate import main as migrate_main
 
@@ -40,7 +42,18 @@ def generate_password() -> str:
 
 
 def ensure_login_role(conn, name: str, group: str, password: str, *, rotate: bool) -> str:
-    """Create a login role in a group, or rotate its password. Returns the action."""
+    """Create a login role in a group, or rotate its password. Returns the action.
+
+    CREATE ROLE and ALTER ROLE are utility statements, and Postgres does not
+    accept bound parameters in them -- `PASSWORD %s` is a syntax error at the
+    placeholder, not a value that fails to bind. The password therefore has to
+    be part of the statement text, which is exactly the situation that invites
+    an f-string and a quoting bug.
+
+    psycopg.sql composes it instead: Identifier quotes the names, Literal quotes
+    and escapes the password. Neither is string formatting, and neither can be
+    talked out of escaping by the contents.
+    """
     with conn.cursor() as cur:
         cur.execute("SELECT 1 FROM pg_roles WHERE rolname = %s", (name,))
         exists = cur.fetchone() is not None
@@ -48,17 +61,18 @@ def ensure_login_role(conn, name: str, group: str, password: str, *, rotate: boo
         if exists and not rotate:
             return "unchanged"
 
-        if exists:
-            cur.execute(f'ALTER ROLE "{name}" WITH LOGIN PASSWORD %s', (password,))
-            action = "rotated"
-        else:
-            cur.execute(f'CREATE ROLE "{name}" WITH LOGIN PASSWORD %s', (password,))
-            action = "created"
+        verb = "ALTER" if exists else "CREATE"
+        cur.execute(
+            sql.SQL("{} ROLE {} WITH LOGIN PASSWORD {}").format(
+                sql.SQL(verb), sql.Identifier(name), sql.Literal(password)
+            )
+        )
+        action = "rotated" if exists else "created"
 
         # Membership is what carries the grants. The login role itself is given
         # no privileges of its own, so revoking the membership is enough to cut
         # off access without dropping anything.
-        cur.execute(f'GRANT "{group}" TO "{name}"')
+        cur.execute(sql.SQL("GRANT {} TO {}").format(sql.Identifier(group), sql.Identifier(name)))
         return action
 
 
@@ -66,7 +80,7 @@ def dsn_for(admin_dsn: str, user: str, password: str) -> str:
     """Rewrite an admin DSN to point at a different role."""
     parts = urlsplit(admin_dsn)
     host = parts.hostname or "localhost"
-    netloc = f"{quote(user)}:{quote(password)}@{host}"
+    netloc = f"{quote(user, safe='')}:{quote(password, safe='')}@{host}"
     if parts.port:
         netloc += f":{parts.port}"
     return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
