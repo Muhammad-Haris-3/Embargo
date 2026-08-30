@@ -22,10 +22,15 @@ services:
       # Refuses to fall back to a writable DSN. See api.main.reader_dsn.
       - key: EMBARGO_ENV
         value: production
-      # Set in the Render dashboard, never here:
+      # Declared without a value. `sync: false` means Render prompts for it
+      # when the blueprint is applied and stores it encrypted, so the key is
+      # on the record here while the secret never is -- and a deploy cannot
+      # silently come up without it.
+      - key: EMBARGO_READER_DSN
+        sync: false
       #
-      #   EMBARGO_READER_DSN -- the embargo_api role, which holds SELECT and
-      #   nothing else.
+      # EMBARGO_READER_DSN is the embargo_api role, which holds SELECT and
+      # nothing else.
       #
       # EMBARGO_DSN is deliberately NOT available to this service. If the API
       # held the collector's credentials, the append-only guarantee would rest
