@@ -13,6 +13,12 @@ those two moments, and estimates how many are sitting in that gap right now —
 a number the registry cannot be asked for, because a result under review is
 indistinguishable from one that was never submitted at all.
 
+[**Live site**](https://embargo-silk.vercel.app) ·
+[The wait](https://embargo-silk.vercel.app/cohorts) ·
+[The register](https://embargo-silk.vercel.app/register) ·
+[Coverage](https://embargo-silk.vercel.app/coverage) ·
+[API](https://embargo-api-kz73.onrender.com/v1/status)
+
 > **Status: M4. Gate 3 fails, and the build is red on purpose.**
 >
 > [![gates](https://github.com/Muhammad-Haris-3/Embargo/actions/workflows/gates.yml/badge.svg)](https://github.com/Muhammad-Haris-3/Embargo/actions/workflows/gates.yml)

@@ -2,7 +2,7 @@
 
 **Milestone:** M6
 **Date:** 2026-08-30
-**Status:** Built, typechecked, and rendered against the live API. **Not deployed** — see §5.
+**Status:** Complete. Deployed and verified live.
 
 | | |
 |---|---|
@@ -127,11 +127,29 @@ saying it when the gate stops failing.
 **The `≥` renders on every Q\* cell.** The bound travels with the number in the
 markup, not only in the prose beside it.
 
-**Still not done: deployment.** There is no Vercel project, no Render service,
-and no public URL. `render.yaml` and `DEPLOYMENT.md` are written and unused.
+## 6. Deployed
 
-## 6. Next
+| | |
+|---|---|
+| Site | https://embargo-silk.vercel.app |
+| API | https://embargo-api-kz73.onrender.com |
 
-Deployment needs a Vercel project for `web/` and a host for the API — the
-same shape as GridCast, Vercel in front of Render, with `EMBARGO_READER_DSN`
-set on the API host and `NEXT_PUBLIC_API_BASE_URL` set on Vercel.
+Verified against the deployed services rather than assumed: all seven API
+endpoints answer, `/v1/queue/current` returns **409** naming the failing gate,
+and the live pages carry 19 cohort rows, 9 register rows and 3 gate verdicts.
+
+**The first Vercel build shipped four pages reading "the API may be waking
+up".** A free Render container answers 502 from its router for the 30+ seconds
+it takes to start, one fetch attempt failed, and because the pages are
+prerendered that failure was baked into the HTML every visitor would see until
+revalidation. The data and the code were both fine.
+
+`get()` now retries four times with backoff, up to about 38 seconds — a slow
+build being cheaper than a wrong one. A 4xx is deliberately not retried: it is
+an answer rather than an outage, and retrying the 409 would turn the withheld
+figure into a missing one.
+
+## 7. Next
+
+M7, deadline drift — the one milestone that needs the record-history backlog,
+which is still draining.
