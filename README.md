@@ -20,6 +20,8 @@ indistinguishable from one that was never submitted at all.
 > [`Embargo_M0_Spec.md`](Embargo_M0_Spec.md) records what M0 established,
 > including the two properties that could have ended the project, and
 > [`Embargo_M1_Summary.md`](Embargo_M1_Summary.md) has the wait by cohort.
+>
+> **Gates 1 and 2 pass. Gate 3, the one that can fail on its merits, is M4.**
 
 ---
 
@@ -198,6 +200,7 @@ whose queue is gone.
 | [`Embargo_M0_Spec.md`](Embargo_M0_Spec.md) | What M0 must establish, and what it found |
 | [`Embargo_M1_Summary.md`](Embargo_M1_Summary.md) | The wait by submission cohort, and the amendment it forced |
 | [`Embargo_M2_Summary.md`](Embargo_M2_Summary.md) | Reconstruction, the knowability guard, and Gate 1 |
+| [`Embargo_M3_Summary.md`](Embargo_M3_Summary.md) | Gate 2, the census, and gates made to fail offline |
 | `METHODS.md` | Every convention, and the exploratory work, labelled as such |
 | `DECISION_MEMO.md` | The finding in two pages, no technical background needed — from M8 |
 

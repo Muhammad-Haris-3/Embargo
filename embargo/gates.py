@@ -22,7 +22,12 @@ from typing import Any
 
 from .ctgov import CtGov
 from .pit import status_module_of, store_version
-from .preregistration import GATE1_SAMPLE_SIZE, GATE1_SEED
+from .preregistration import (
+    CENSUS_END_YEAR,
+    CENSUS_START_YEAR,
+    GATE1_SAMPLE_SIZE,
+    GATE1_SEED,
+)
 
 
 @dataclass
@@ -143,5 +148,81 @@ def gate1_capture_is_faithful(
             "requested_size": size,
             "failures": failures[:20],
             "empty_population": not pairs,
+        },
+    )
+
+
+# The path through a landing payload to the day results became readable. Written
+# once: it appears in SQL and in Python, and the two drifting apart would make
+# the gate compare our count against a different question.
+POST_DATE_PATH = "payload->'protocolSection'->'statusModule'->'resultsFirstPostDateStruct'->>'date'"
+
+
+def our_census(conn: Any, start: int, end: int) -> dict[int, int]:
+    """Trials whose results were first posted in each year, per our warehouse.
+
+    Counted over the latest payload per trial. A trial that was captured twice
+    is one trial, and counting landing rows instead of trials would inflate
+    every year in which anything was recaptured.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            f"""
+            WITH latest AS (
+                SELECT DISTINCT ON (nct_id) nct_id, payload
+                  FROM landing_study
+                 ORDER BY nct_id, captured_at DESC
+            )
+            SELECT left({POST_DATE_PATH}, 4)::int AS yr, count(*)
+              FROM latest
+             WHERE {POST_DATE_PATH} IS NOT NULL
+             GROUP BY yr
+            """
+        )
+        counts = dict(cur.fetchall())
+    return {year: counts.get(year, 0) for year in range(start, end + 1)}
+
+
+def gate2_census_agrees(
+    conn: Any,
+    source: CtGov,
+    *,
+    start: int = CENSUS_START_YEAR,
+    end: int = CENSUS_END_YEAR,
+) -> GateResult:
+    """Gate 2 -- our per-year counts equal the registry's own.
+
+    Exactly. A count is not a measurement and has no tolerance: if the registry
+    says 4,312 trials posted results in 2019 and we hold 4,311, we are missing
+    one, and no threshold makes that acceptable.
+
+    The census stops at CENSUS_END_YEAR deliberately. The current year is still
+    accumulating postings, so comparing a live count against a snapshot taken
+    this morning would fail for a reason that has nothing to do with capture.
+    """
+    ours = our_census(conn, start, end)
+    failures = []
+    worst = 0
+
+    for year in range(start, end + 1):
+        theirs = source.count(
+            query_term=f"AREA[ResultsFirstPostDate]RANGE[{year}-01-01,{year}-12-31]"
+        )
+        mine = ours.get(year, 0)
+        if mine != theirs:
+            diff = mine - theirs
+            worst = max(worst, abs(diff))
+            failures.append({"year": year, "ours": mine, "registry": theirs, "diff": diff})
+
+    return GateResult(
+        gate="census_agrees",
+        passed=not failures,
+        n_checked=end - start + 1,
+        n_failed=len(failures),
+        worst_diff=worst or None,
+        detail={
+            "years": f"{start}-{end}",
+            "ours": ours,
+            "failures": failures,
         },
     )
