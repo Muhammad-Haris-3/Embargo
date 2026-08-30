@@ -54,58 +54,84 @@ DAILY_LOOKBACK_DAYS = 14
 # an undocumented endpoint.
 DEFAULT_HISTORY_BUDGET = 400
 
+# Rows per INSERT. Each statement is one round trip, and round trip is the
+# entire cost of this job against a hosted database.
+INSERT_BATCH = 500
+
 
 def posted_since(since: dt.date) -> str:
     """Search term for records whose results were first posted on or after a date."""
     return f"AREA[ResultsFirstPostDate]RANGE[{since.isoformat()},MAX]"
 
 
-def land_study(conn: Any, state: Run, study: dict[str, Any]) -> bool:
-    """Insert a payload if this exact content has not been seen before."""
-    dates = status_dates(study)
-    nct_id = dates["nct_id"]
+def study_row(state: Run, study: dict[str, Any]) -> tuple | None:
+    """Shape one study record for insertion, or None if it has no identifier."""
+    nct_id = status_dates(study)["nct_id"]
     if not nct_id:
-        return False
+        return None
+    return (
+        nct_id,
+        canonical_sha256(study),
+        state.run_id,
+        json.dumps(study, default=str),
+    )
 
-    digest = canonical_sha256(study)
+
+def land_studies(conn: Any, rows: list[tuple]) -> int:
+    """Insert a batch of payloads, skipping content already seen.
+
+    One statement per batch rather than one per row. The first backfill ran at
+    15 rows/sec against Neon -- about 65ms each, essentially all of it round
+    trip -- which put 80,000 records well past the job timeout. The work was
+    never the database; it was asking it 80,000 separate times.
+
+    ON CONFLICT DO NOTHING still reports the rows actually written, so
+    insert-if-changed keeps its meaning: re-reading an unchanged record costs a
+    little bandwidth and adds nothing.
+    """
+    if not rows:
+        return 0
+    placeholders = ",".join(["(%s, %s, %s, %s::jsonb)"] * len(rows))
+    flat = [value for row in rows for value in row]
     with conn.cursor() as cur:
         cur.execute(
-            """
-            INSERT INTO landing_study (nct_id, content_sha256, ingest_run_id, payload)
-            VALUES (%s, %s, %s, %s::jsonb)
-            ON CONFLICT (nct_id, content_sha256) DO NOTHING
-            """,
-            (nct_id, digest, state.run_id, json.dumps(study, default=str)),
+            "INSERT INTO landing_study (nct_id, content_sha256, ingest_run_id, payload) "
+            f"VALUES {placeholders} "
+            "ON CONFLICT (nct_id, content_sha256) DO NOTHING",
+            flat,
         )
-        return cur.rowcount > 0
+        return cur.rowcount
 
 
 def land_history(conn: Any, state: Run, source: CtGov, nct_id: str) -> int:
     """Fetch and store a record revision list. Returns rows appended."""
     versions = source.history(nct_id)
-    appended = 0
+    if not versions:
+        return 0
+
+    rows = [
+        (
+            v.nct_id,
+            v.version,
+            v.version_date,
+            v.status,
+            list(v.module_labels),
+            v.touched_results,
+            state.run_id,
+        )
+        for v in versions
+    ]
+    placeholders = ",".join(["(%s, %s, %s, %s, %s, %s, %s)"] * len(rows))
+    flat = [value for row in rows for value in row]
     with conn.cursor() as cur:
-        for v in versions:
-            cur.execute(
-                """
-                INSERT INTO record_versions
-                    (nct_id, version, version_date, status, module_labels,
-                     touched_results, ingest_run_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (nct_id, version) DO NOTHING
-                """,
-                (
-                    v.nct_id,
-                    v.version,
-                    v.version_date,
-                    v.status,
-                    list(v.module_labels),
-                    v.touched_results,
-                    state.run_id,
-                ),
-            )
-            appended += cur.rowcount
-    return appended
+        cur.execute(
+            "INSERT INTO record_versions (nct_id, version, version_date, status, "
+            "module_labels, touched_results, ingest_run_id) "
+            f"VALUES {placeholders} "
+            "ON CONFLICT (nct_id, version) DO NOTHING",
+            flat,
+        )
+        return cur.rowcount
 
 
 def needs_history(conn: Any, limit: int) -> list[str]:
@@ -136,15 +162,20 @@ def sweep_postings(
 ) -> int:
     appended = 0
     seen = 0
+    batch: list[tuple] = []
     for study in source.search(query_term=posted_since(since), max_pages=max_pages):
         seen += 1
-        if land_study(conn, state, study):
-            appended += 1
-        # Commit in batches. A long sweep that dies at page 40 should keep the
-        # first 39 pages, because the alternative is a collector that can only
-        # succeed completely and therefore, on a bad day, never.
-        if seen % 500 == 0:
+        row = study_row(state, study)
+        if row is not None:
+            batch.append(row)
+        # Write and commit in batches. A long sweep that dies at page 40 should
+        # keep the first 39 pages, because the alternative is a collector that
+        # can only succeed completely and therefore, on a bad day, never.
+        if len(batch) >= INSERT_BATCH:
+            appended += land_studies(conn, batch)
             conn.commit()
+            batch = []
+    appended += land_studies(conn, batch)
     conn.commit()
     state.note(postings_seen=seen, postings_appended=appended, since=since.isoformat())
     return appended
