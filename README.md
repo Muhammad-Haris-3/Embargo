@@ -214,6 +214,8 @@ whose queue is gone.
 | [`Embargo_M2_Summary.md`](Embargo_M2_Summary.md) | Reconstruction, the knowability guard, and Gate 1 |
 | [`Embargo_M3_Summary.md`](Embargo_M3_Summary.md) | Gate 2, the census, and gates made to fail offline |
 | [`Embargo_M4_Summary.md`](Embargo_M4_Summary.md) | The estimator, and Gate 3 failing |
+| [`Embargo_M5_Summary.md`](Embargo_M5_Summary.md) | The read-only API, and an endpoint that refuses |
+| [`Embargo_M6_Summary.md`](Embargo_M6_Summary.md) | The application, written and not yet built |
 | `METHODS.md` | Every convention, and the exploratory work, labelled as such |
 | `DECISION_MEMO.md` | The finding in two pages, no technical background needed — from M8 |
 

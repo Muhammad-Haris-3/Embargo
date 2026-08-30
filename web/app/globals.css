@@ -1,0 +1,255 @@
+:root {
+  --bg: #fbfbf9;
+  --panel: #ffffff;
+  --ink: #16161a;
+  --muted: #5d6068;
+  --line: #e2e2dd;
+  --accent: #1c4e80;
+  --withheld: #8a2f2f;
+  --withheld-bg: #fbf2f2;
+  --ok: #2c6e49;
+  --warn: #8a5a00;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #131315;
+    --panel: #1a1a1d;
+    --ink: #ececee;
+    --muted: #9a9ca3;
+    --line: #2c2c31;
+    --accent: #7fb0e0;
+    --withheld: #e08585;
+    --withheld-bg: #241a1a;
+    --ok: #7fc79b;
+    --warn: #d8a33c;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 5rem;
+}
+
+header.site {
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+header.site .inner {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+  display: flex;
+  gap: 1.25rem;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+header.site a.brand {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-size: 1.15rem;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+nav a {
+  color: var(--muted);
+  text-decoration: none;
+  margin-right: 1rem;
+  font-size: 0.92rem;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+nav a:hover {
+  color: var(--accent);
+}
+
+h1 {
+  font-size: 2.1rem;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin: 0 0 0.75rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  margin: 2.5rem 0 0.6rem;
+  letter-spacing: -0.015em;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+.lede {
+  font-size: 1.18rem;
+  color: var(--muted);
+}
+
+/* The withheld figure. It is the most prominent thing on the site, because
+   the absence is the finding. */
+.withheld {
+  border: 1px solid var(--withheld);
+  background: var(--withheld-bg);
+  border-radius: 6px;
+  padding: 1.25rem 1.4rem;
+  margin: 2rem 0;
+}
+
+.withheld .label {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--withheld);
+  font-weight: 700;
+}
+
+.withheld .figure {
+  font-size: 2.6rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin: 0.3rem 0;
+  color: var(--withheld);
+}
+
+.withheld p {
+  margin: 0.5rem 0 0;
+  font-size: 0.97rem;
+  color: var(--muted);
+}
+
+.stat-row {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin: 1.5rem 0;
+}
+
+.stat .n {
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  display: block;
+}
+
+.stat .k {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.88rem;
+  margin: 1rem 0;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+th,
+td {
+  text-align: right;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+th:first-child,
+td:first-child {
+  text-align: left;
+}
+
+thead th {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+tr.censored td {
+  color: var(--muted);
+}
+
+.pill {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  border: 1px solid currentColor;
+}
+
+.pass {
+  color: var(--ok);
+}
+
+.fail {
+  color: var(--withheld);
+}
+
+.note {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.85rem;
+  color: var(--muted);
+  border-left: 2px solid var(--line);
+  padding-left: 0.9rem;
+  margin: 1.25rem 0;
+}
+
+.age {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.4rem;
+}
+
+a {
+  color: var(--accent);
+}
+
+footer {
+  border-top: 1px solid var(--line);
+  margin-top: 3.5rem;
+  padding-top: 1rem;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.05rem 0.3rem;
+}
