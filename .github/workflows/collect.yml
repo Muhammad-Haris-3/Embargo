@@ -46,10 +46,26 @@ jobs:
           python-version: "3.13"
       - run: python -m pip install -e ".[db]"
 
+      # Until the database exists this job has nothing to do, and a scheduled
+      # run that fails every morning teaches everyone to ignore a red mark. It
+      # reports not-configured and stops, which is a different thing from
+      # succeeding: the run log stays empty and the M0 checklist stays unticked.
+      - name: Is there a database yet
+        id: check
+        run: |
+          if [ -z "$EMBARGO_DSN" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::EMBARGO_DSN is unset -- nothing collected. See the Deploying section of the README."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Migrate
+        if: steps.check.outputs.configured == 'true'
         run: python -m embargo.migrate
 
       - name: Collect
+        if: steps.check.outputs.configured == 'true'
         run: |
           python -m embargo.ingest \
             --job "${{ inputs.job || 'daily' }}" \
