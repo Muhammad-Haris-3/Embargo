@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 import os
+import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -61,12 +62,45 @@ def reader_dsn() -> str:
 
 @contextmanager
 def db() -> Iterator[Any]:
+    """A read-only connection, or a 503 that says which thing went wrong.
+
+    Every failure here used to arrive as a bare 500. A misconfigured deployment
+    and an unreachable database looked identical from outside, and the message
+    written into the exception -- the one naming the missing variable -- never
+    reached anybody, because FastAPI turns an unhandled RuntimeError into
+    "Internal Server Error" and nothing else.
+
+    Nothing derived from the DSN is put in a response. The connection string
+    carries a password, and an error message is the classic way one escapes.
+    """
     import psycopg
 
-    dsn = reader_dsn()
+    try:
+        dsn = reader_dsn()
+    except WritableCredentialInProduction as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
     if not dsn:
-        raise HTTPException(status_code=503, detail="no database configured")
-    conn = psycopg.connect(dsn, autocommit=True)
+        raise HTTPException(
+            status_code=503,
+            detail="No database configured: set EMBARGO_READER_DSN.",
+        )
+
+    try:
+        conn = psycopg.connect(dsn, autocommit=True)
+    except psycopg.OperationalError as exc:
+        # Deliberately the class name and not the message: psycopg quotes the
+        # connection parameters back in some failures.
+        print(f"database connection failed: {exc!r}", file=sys.stderr)
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                f"Database unreachable ({type(exc).__name__}). Check that "
+                "EMBARGO_READER_DSN names the embargo_api role and that its "
+                "password is current. Details are in the service log, not here."
+            ),
+        ) from exc
+
     try:
         yield conn
     finally:
