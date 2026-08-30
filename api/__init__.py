@@ -1,0 +1,1 @@
+"""Embargo read-only API."""

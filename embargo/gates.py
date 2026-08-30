@@ -281,16 +281,20 @@ def gate3_estimator_recovers(
         # is not a possible thing for a gate to report.
         checked += 1
 
+        # Worst error over every point examined. Accumulating it only where the
+        # tolerance test was reached reported worst_diff as null on a gate that
+        # missed by 90%.
+        if error is not None:
+            worst = max(worst, abs(error))
+
         if point.below_the_bound:
             failures.append({**summary, "reason": "below the realised lower bound"})
             continue
 
         if point.mature:
             mature_checked += 1
-            if error is not None:
-                worst = max(worst, abs(error))
-                if abs(error) > tol:
-                    failures.append({**summary, "reason": f"outside tolerance {tol}"})
+            if error is not None and abs(error) > tol:
+                failures.append({**summary, "reason": f"outside tolerance {tol}"})
 
     return GateResult(
         gate="estimator_recovers",

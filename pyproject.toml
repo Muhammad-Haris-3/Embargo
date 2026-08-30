@@ -10,17 +10,20 @@ dependencies = ["httpx>=0.27"]
 # means the offline suite -- which is everything except the gates and the
 # append-only tests -- runs on a fresh clone with no services running.
 db = ["psycopg[binary]>=3.2"]
+# The API never trains and never estimates; it reads rows. Kept separate so
+# the collector image does not carry a web framework it never imports.
+api = ["fastapi>=0.115", "uvicorn[standard]>=0.30", "psycopg[binary]>=3.2"]
 # ruff is pinned exactly, not floated. An unpinned linter means CI can fail on a
 # commit that changed nothing it touches, the day a new rule ships -- which is
 # how it first went red here.
-dev = ["pytest>=8.0", "ruff==0.16.5"]
+dev = ["pytest>=8.0", "ruff==0.16.5", "httpx>=0.27"]
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["embargo*"]
+include = ["embargo*", "api*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

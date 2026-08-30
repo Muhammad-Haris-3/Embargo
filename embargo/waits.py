@@ -140,11 +140,21 @@ def read_records(conn: Any) -> list[dict[str, Any]]:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="M1: wait distribution by submission cohort")
     parser.add_argument("--out", type=Path, default=ARTIFACT)
+    parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="also write the cohorts to mart_wait_cohorts, which is what the API serves",
+    )
     args = parser.parse_args(argv if argv is not None else sys.argv[1:])
 
     today = today_utc()
     with connect() as conn:
         records = read_records(conn)
+        cohorts = build_cohorts(records)
+        summaries_for_mart = [cohorts[y].summary(today) for y in sorted(cohorts)]
+        if args.publish:
+            publish(conn, summaries_for_mart)
+            conn.commit()
 
     cohorts = build_cohorts(records)
     summaries = [cohorts[y].summary(today) for y in sorted(cohorts)]
@@ -202,6 +212,48 @@ def main(argv: list[str] | None = None) -> int:
         print("no mature cohorts yet")
     print(f"\nwrote {args.out}", file=sys.stderr)
     return 0
+
+
+def publish(conn: Any, summaries: list[dict[str, Any]]) -> int:
+    """Write a cohort snapshot to the mart the API reads.
+
+    One snapshot per call, stamped with a single `computed_at` so that a reader
+    taking "the latest" gets a consistent set rather than a mixture of two runs.
+    """
+    stamp = dt.datetime.now(dt.UTC)
+    rows = 0
+    with conn.cursor() as cur:
+        for s in summaries:
+            cur.execute(
+                """
+                INSERT INTO mart_wait_cohorts
+                    (computed_at, cohort_year, n_observed, is_mature, quotable,
+                     median_days, p75_days, p90_days, p99_days, max_days,
+                     share_over_180d, share_over_365d, negative_waits,
+                     partial_dates, maturity_days)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (computed_at, cohort_year) DO NOTHING
+                """,
+                (
+                    stamp,
+                    s["year"],
+                    s["n_observed"],
+                    s["is_mature"],
+                    s["quotable"],
+                    s["median_days"],
+                    s["p75_days"],
+                    s["p90_days"],
+                    s["p99_days"],
+                    s["max_days"],
+                    s["share_over_180d"],
+                    s["share_over_365d"],
+                    s["negative_waits_excluded"],
+                    s["partial_dates_flagged"],
+                    MATURITY_DAYS,
+                ),
+            )
+            rows += cur.rowcount
+    return rows
 
 
 if __name__ == "__main__":
