@@ -151,11 +151,17 @@ python -m embargo.ingest --job daily
 ## Deploying it
 
 The database is the only thing that cannot be provisioned from this repository.
-Create an empty Postgres — Neon's free tier is what GridCast runs on — and then:
+Create an empty Postgres — Neon's free tier is what GridCast runs on. In the
+Neon console, click **Connect** on the project dashboard and **turn the
+connection pooling toggle off**: the pooled endpoint runs PgBouncer in
+transaction mode, where the session-level features that role creation and DDL
+rely on are unavailable. Copy the direct string, the one without `-pooler` in
+the hostname, and use it whole — the database is called `neondb`, and editing
+that part of the string is the first thing that goes wrong.
 
 ```bash
 python -m pip install -e ".[db]"
-python -m embargo.bootstrap --admin-dsn "postgresql://OWNER:PW@HOST/embargo?sslmode=require"
+python -m embargo.bootstrap --admin-dsn "postgresql://neondb_owner:PW@ep-xxx.REGION.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 ```
 
 `bootstrap` applies the schema, creates the two **login** roles as members of
