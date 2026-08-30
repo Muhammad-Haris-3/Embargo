@@ -171,8 +171,12 @@ string as the `EMBARGO_DSN` secret and the owner string as `EMBARGO_ADMIN_DSN`:
 
 ```bash
 gh secret set EMBARGO_DSN --repo Muhammad-Haris-3/Embargo
-gh secret set EMBARGO_ADMIN_DSN --repo Muhammad-Haris-3/Embargo
 ```
+
+**Only the writer string.** The owner credential is used once, from your
+machine, by `bootstrap`, and never stored in CI. A daily workflow holding owner
+rights could `UPDATE` or `DELETE` anything, and the append-only guarantee would
+be a sentence in this README rather than a property of the system.
 
 Then start it, and check the run log:
 

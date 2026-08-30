@@ -37,7 +37,6 @@ jobs:
     timeout-minutes: 50
     env:
       EMBARGO_DSN: ${{ secrets.EMBARGO_DSN }}
-      EMBARGO_ADMIN_DSN: ${{ secrets.EMBARGO_ADMIN_DSN }}
       EMBARGO_CONTACT: ${{ vars.EMBARGO_CONTACT }}
     steps:
       - uses: actions/checkout@v4
@@ -50,6 +49,12 @@ jobs:
       # run that fails every morning teaches everyone to ignore a red mark. It
       # reports not-configured and stops, which is a different thing from
       # succeeding: the run log stays empty and the M0 checklist stays unticked.
+      # There is deliberately no migrate step here, and no owner credential in
+      # this job. The schema is applied once at deploy time by embargo.bootstrap.
+      # A daily workflow holding owner rights could UPDATE or DELETE anything,
+      # which would make "the writer role physically cannot restate an
+      # observation" a sentence in a README rather than a property of the
+      # system. The collector connects as embargo_app and holds INSERT.
       - name: Is there a database yet
         id: check
         run: |
@@ -59,10 +64,6 @@ jobs:
           else
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
-
-      - name: Migrate
-        if: steps.check.outputs.configured == 'true'
-        run: python -m embargo.migrate
 
       - name: Collect
         if: steps.check.outputs.configured == 'true'
