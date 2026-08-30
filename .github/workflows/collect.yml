@@ -48,16 +48,17 @@ jobs:
           python-version: "3.13"
       - run: python -m pip install -e ".[db]"
 
-      # Until the database exists this job has nothing to do, and a scheduled
-      # run that fails every morning teaches everyone to ignore a red mark. It
-      # reports not-configured and stops, which is a different thing from
-      # succeeding: the run log stays empty and the M0 checklist stays unticked.
       # There is deliberately no migrate step here, and no owner credential in
       # this job. The schema is applied once at deploy time by embargo.bootstrap.
       # A daily workflow holding owner rights could UPDATE or DELETE anything,
       # which would make "the writer role physically cannot restate an
       # observation" a sentence in a README rather than a property of the
       # system. The collector connects as embargo_app and holds INSERT.
+
+      # Until the database exists this job has nothing to do, and a scheduled
+      # run that fails every morning teaches everyone to ignore a red mark. It
+      # reports not-configured and stops, which is a different thing from
+      # succeeding: the run log stays empty and the M0 checklist stays unticked.
       - name: Is there a database yet
         id: check
         run: |
