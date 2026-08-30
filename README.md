@@ -148,6 +148,36 @@ python -m embargo.migrate
 python -m embargo.ingest --job daily
 ```
 
+## Deploying it
+
+The database is the only thing that cannot be provisioned from this repository.
+Create an empty Postgres — Neon's free tier is what GridCast runs on — and then:
+
+```bash
+python -m pip install -e ".[db]"
+python -m embargo.bootstrap --admin-dsn "postgresql://OWNER:PW@HOST/embargo?sslmode=require"
+```
+
+`bootstrap` applies the schema, creates the two **login** roles as members of
+the NOLOGIN groups that hold the grants, and prints their connection strings
+once. It writes nothing to disk and sends nothing anywhere. Set the writer
+string as the `EMBARGO_DSN` secret and the owner string as `EMBARGO_ADMIN_DSN`:
+
+```bash
+gh secret set EMBARGO_DSN --repo Muhammad-Haris-3/Embargo
+gh secret set EMBARGO_ADMIN_DSN --repo Muhammad-Haris-3/Embargo
+```
+
+Then start it, and check the run log:
+
+```bash
+gh workflow run collect.yml --repo Muhammad-Haris-3/Embargo -f job=backfill
+```
+
+From then on it runs itself at 07:00 UTC. **The backfill can be run at any time;
+the daily runs cannot be caught up.** A day the collector does not run is a day
+whose queue is gone.
+
 ## Documents
 
 | | |
