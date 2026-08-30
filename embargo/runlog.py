@@ -14,9 +14,10 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any
 
 
 @dataclass
@@ -42,6 +43,7 @@ def run(conn: Any, job: str, *, source: Any | None = None) -> Iterator[Run]:
     """
     data_timestamp: dt.datetime | None = None
     api_version: str | None = None
+    timestamp_error: str | None = None
     if source is not None:
         try:
             meta = source.data_timestamp()
@@ -49,8 +51,11 @@ def run(conn: Any, job: str, *, source: Any | None = None) -> Iterator[Run]:
             raw = meta.get("dataTimestamp")
             if raw:
                 data_timestamp = dt.datetime.fromisoformat(raw)
-        except Exception:  # noqa: BLE001 - a missing timestamp must not stop a run
-            pass
+        except Exception as exc:  # noqa: BLE001 - a missing timestamp must not stop a run
+            # Recorded rather than swallowed. A run whose freshness check failed
+            # is still a run worth having, but a week of them is a source
+            # problem, and a silent except would hide exactly that.
+            timestamp_error = repr(exc)
 
     with conn.cursor() as cur:
         cur.execute(
@@ -65,6 +70,8 @@ def run(conn: Any, job: str, *, source: Any | None = None) -> Iterator[Run]:
     conn.commit()
 
     state = Run(run_id=run_id, job=job)
+    if timestamp_error:
+        state.note(data_timestamp_error=timestamp_error)
     try:
         yield state
     except Exception as exc:

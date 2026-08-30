@@ -24,8 +24,9 @@ never have to ask for again.
 from __future__ import annotations
 
 import datetime as dt
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, Iterator
+from typing import Any
 
 from .http import Http
 
@@ -105,8 +106,7 @@ class CtGov:
             if token:
                 page["pageToken"] = token
             data = self.http.get_json(f"{BASE_V2}/studies", **page)
-            for study in data.get("studies", []):
-                yield study
+            yield from data.get("studies", [])
             token = data.get("nextPageToken")
             pages += 1
             if not token or (max_pages is not None and pages >= max_pages):

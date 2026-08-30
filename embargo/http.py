@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import random
 import time
-from typing import Any
+from typing import Any, Self
 
 import httpx
 
@@ -76,7 +76,7 @@ class Http:
     def close(self) -> None:
         self._client.close()
 
-    def __enter__(self) -> "Http":
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *exc: object) -> None:

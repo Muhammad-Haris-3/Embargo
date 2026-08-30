@@ -32,6 +32,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from .clock import today_utc
 from .config import ROOT, settings
 from .ctgov import CtGov, parse_date, status_dates, wait_days
 from .http import Http
@@ -49,8 +50,8 @@ def check_freshness(source: CtGov) -> dict[str, Any]:
         try:
             age_hours = round(
                 (
-                    dt.datetime.now(dt.timezone.utc)
-                    - dt.datetime.fromisoformat(stamp).replace(tzinfo=dt.timezone.utc)
+                    dt.datetime.now(dt.UTC)
+                    - dt.datetime.fromisoformat(stamp).replace(tzinfo=dt.UTC)
                 ).total_seconds()
                 / 3600.0,
                 2,
@@ -124,7 +125,7 @@ def check_disclosure(source: CtGov, sample: int) -> dict[str, Any]:
     the wait is not recoverable after the fact, Gate 3 cannot be marked, and
     PREREGISTRATION.md says so under falsification.
     """
-    recent = dt.date.today() - dt.timedelta(days=120)
+    recent = today_utc() - dt.timedelta(days=120)
     disclosed = 0
     checked = 0
     no_history = 0
@@ -264,7 +265,7 @@ def main(argv: list[str] | None = None) -> int:
 
     cfg = settings()
     facts: dict[str, Any] = {
-        "probed_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "probed_at": dt.datetime.now(dt.UTC).isoformat(),
         "sample_size": args.sample,
         "user_agent": cfg.user_agent,
     }

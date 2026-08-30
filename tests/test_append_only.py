@@ -63,22 +63,19 @@ def test_writer_can_append_an_observation(writer, a_run):
 
 
 def test_writer_cannot_restate_an_observation(writer):
-    with pytest.raises(psycopg.errors.InsufficientPrivilege):
-        with writer.cursor() as cur:
-            cur.execute("UPDATE landing_study SET payload = '{}'::jsonb")
+    with pytest.raises(psycopg.errors.InsufficientPrivilege), writer.cursor() as cur:
+        cur.execute("UPDATE landing_study SET payload = '{}'::jsonb")
 
 
 def test_writer_cannot_delete_an_observation(writer):
-    with pytest.raises(psycopg.errors.InsufficientPrivilege):
-        with writer.cursor() as cur:
-            cur.execute("DELETE FROM landing_study")
+    with pytest.raises(psycopg.errors.InsufficientPrivilege), writer.cursor() as cur:
+        cur.execute("DELETE FROM landing_study")
 
 
 def test_writer_cannot_rewrite_a_record_version(writer):
     """A version describes the past. It can never legitimately change."""
-    with pytest.raises(psycopg.errors.InsufficientPrivilege):
-        with writer.cursor() as cur:
-            cur.execute("UPDATE record_versions SET version_date = now()::date")
+    with pytest.raises(psycopg.errors.InsufficientPrivilege), writer.cursor() as cur:
+        cur.execute("UPDATE record_versions SET version_date = now()::date")
 
 
 def test_writer_cannot_withdraw_a_committed_estimate(writer):
@@ -87,22 +84,19 @@ def test_writer_cannot_withdraw_a_committed_estimate(writer):
     An estimate that can be deleted after the truth arrives is not a
     commitment, and Gate 3 would be unfalsifiable.
     """
-    with pytest.raises(psycopg.errors.InsufficientPrivilege):
-        with writer.cursor() as cur:
-            cur.execute("DELETE FROM queue_estimates")
+    with pytest.raises(psycopg.errors.InsufficientPrivilege), writer.cursor() as cur:
+        cur.execute("DELETE FROM queue_estimates")
 
 
 def test_writer_cannot_amend_a_committed_estimate(writer):
-    with pytest.raises(psycopg.errors.InsufficientPrivilege):
-        with writer.cursor() as cur:
-            cur.execute("UPDATE queue_estimates SET q_hat = 0")
+    with pytest.raises(psycopg.errors.InsufficientPrivilege), writer.cursor() as cur:
+        cur.execute("UPDATE queue_estimates SET q_hat = 0")
 
 
 def test_writer_cannot_rewrite_a_gate_result(writer):
     """A failed gate stays failed."""
-    with pytest.raises(psycopg.errors.InsufficientPrivilege):
-        with writer.cursor() as cur:
-            cur.execute("UPDATE gate_results SET passed = true")
+    with pytest.raises(psycopg.errors.InsufficientPrivilege), writer.cursor() as cur:
+        cur.execute("UPDATE gate_results SET passed = true")
 
 
 def test_an_estimate_cannot_be_committed_for_a_future_freeze_date(writer, a_run):
@@ -111,16 +105,15 @@ def test_an_estimate_cannot_be_committed_for_a_future_freeze_date(writer, a_run)
     Committing an estimate for a date that has not happened, from data that
     therefore cannot exist, is refused by a CHECK rather than by review.
     """
-    with pytest.raises(psycopg.errors.CheckViolation):
-        with writer.cursor() as cur:
-            cur.execute(
-                """
+    with pytest.raises(psycopg.errors.CheckViolation), writer.cursor() as cur:
+        cur.execute(
+            """
                 INSERT INTO queue_estimates
                     (freeze_date, method, method_sha256, q_hat, inputs_sha256, ingest_run_id)
                 VALUES (now()::date + 30, 'test', %s, 1, %s, %s)
                 """,
-                (b"\x00" * 32, b"\x00" * 32, a_run),
-            )
+            (b"\x00" * 32, b"\x00" * 32, a_run),
+        )
 
 
 def test_run_log_may_be_closed(writer, a_run):

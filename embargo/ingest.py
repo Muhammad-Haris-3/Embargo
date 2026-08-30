@@ -35,12 +35,14 @@ import json
 import sys
 from typing import Any
 
+from .clock import today_utc
 from .config import settings
 from .ctgov import CtGov, status_dates
 from .db import canonical_sha256, connect
 from .http import Http
 from .preregistration import CENSUS_START_YEAR
-from .runlog import Run, run as run_log
+from .runlog import Run
+from .runlog import run as run_log
 
 # How far back a daily run looks. Generous on purpose: the sweep is
 # insert-if-changed, so overlapping windows cost a little bandwidth and buy
@@ -190,7 +192,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.job == "backfill":
         since = dt.date(CENSUS_START_YEAR, 1, 1)
     else:
-        since = dt.date.today() - dt.timedelta(days=DAILY_LOOKBACK_DAYS)
+        since = today_utc() - dt.timedelta(days=DAILY_LOOKBACK_DAYS)
 
     cfg = settings()
     with Http(
@@ -199,14 +201,13 @@ def main(argv: list[str] | None = None) -> int:
         max_retries=cfg.max_retries,
     ) as http:
         source = CtGov(http)
-        with connect() as conn:
-            with run_log(conn, args.job, source=source) as state:
-                appended = sweep_postings(conn, state, source, since, max_pages=args.max_pages)
-                if not args.skip_history:
-                    appended += sweep_history(conn, state, source, args.history_budget)
-                state.rows_appended = appended
-                state.http_calls = http.calls
-                print(json.dumps({"run_id": state.run_id, **state.detail}, indent=2, default=str))
+        with connect() as conn, run_log(conn, args.job, source=source) as state:
+            appended = sweep_postings(conn, state, source, since, max_pages=args.max_pages)
+            if not args.skip_history:
+                appended += sweep_history(conn, state, source, args.history_budget)
+            state.rows_appended = appended
+            state.http_calls = http.calls
+            print(json.dumps({"run_id": state.run_id, **state.detail}, indent=2, default=str))
     return 0
 
 

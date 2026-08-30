@@ -10,7 +10,10 @@ dependencies = ["httpx>=0.27"]
 # means the offline suite -- which is everything except the gates and the
 # append-only tests -- runs on a fresh clone with no services running.
 db = ["psycopg[binary]>=3.2"]
-dev = ["pytest>=8.0", "ruff>=0.6"]
+# ruff is pinned exactly, not floated. An unpinned linter means CI can fail on a
+# commit that changed nothing it touches, the day a new rule ships -- which is
+# how it first went red here.
+dev = ["pytest>=8.0", "ruff==0.16.5"]
 
 [build-system]
 requires = ["setuptools>=68"]
