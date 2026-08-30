@@ -68,11 +68,14 @@ question than the one asked.
 
 ## 4. What was verified, and how
 
-Node is not installed on the machine this was written on, so `npm run build`
-has not run. What could be checked was checked:
+This check was written before Node was available, when a build could not be
+run at all, and it is kept because it catches something a build does not.
 
 **The API contract.** A script compares every TypeScript type in `web/lib/api.ts`
-against the live JSON from each endpoint, including nested element types.
+against the live JSON from each endpoint, including nested element types. A
+build cannot catch this: a field renamed in the API still typechecks against a
+client that declares it, compiles cleanly, and renders `undefined` into a table
+cell at runtime.
 
 ```
 OK  /v1/status             type Status         missing_in_api=-
@@ -86,10 +89,6 @@ OK  /v1/queue/current(409) type Withheld       missing_in_api=-
 
 CONTRACT OK
 ```
-
-That is the failure this check exists for: a field renamed in the API and not in
-the client renders as `undefined` in a table cell rather than as an error, and
-looks like missing data rather than a bug.
 
 ## 5. Built and verified
 
