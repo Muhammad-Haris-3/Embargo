@@ -94,6 +94,43 @@ export type CoverageDay = {
 
 export type Coverage = { days: CoverageDay[]; note: string; generated_at: string };
 
+const WAKE_ATTEMPTS = 4;
+const WAKE_BACKOFF_MS = [0, 6000, 12000, 20000];
+
+/**
+ * One request, retried while the API is waking.
+ *
+ * A free Render instance answers 502 or 503 from its router for the 30+
+ * seconds it takes to start a sleeping container. A single attempt therefore
+ * fails during any build that happens to land on a cold API -- and because
+ * pages are prerendered, that failure is baked into the HTML every visitor
+ * sees until the next revalidation.
+ *
+ * That is exactly what happened on the first deployment: the build ran against
+ * a sleeping API and shipped four pages reading "the API may be waking up".
+ * Retrying costs a slow build and saves a wrong one.
+ *
+ * A 4xx is not retried. It is an answer, not an outage -- and 409 from
+ * /v1/queue/current is a meaningful answer this project depends on.
+ */
+async function attempt(path: string): Promise<Response | null> {
+  for (let i = 0; i < WAKE_ATTEMPTS; i++) {
+    if (WAKE_BACKOFF_MS[i] > 0) {
+      await new Promise((r) => setTimeout(r, WAKE_BACKOFF_MS[i]));
+    }
+    try {
+      const res = await fetch(`${API_BASE}${path}`, {
+        next: { revalidate: 300 },
+        headers: { accept: "application/json" },
+      });
+      if (res.ok || (res.status >= 400 && res.status < 500)) return res;
+    } catch {
+      // Transport failure: a container that is not listening yet.
+    }
+  }
+  return null;
+}
+
 /**
  * Fetch, returning null rather than throwing.
  *
@@ -102,12 +139,9 @@ export type Coverage = { days: CoverageDay[]; note: string; generated_at: string
  * caller decides what an absent section should say.
  */
 export async function get<T>(path: string): Promise<T | null> {
+  const res = await attempt(path);
+  if (!res || !res.ok) return null;
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      next: { revalidate: 300 },
-      headers: { accept: "application/json" },
-    });
-    if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
     return null;
@@ -130,14 +164,10 @@ export type Withheld = {
 };
 
 export async function getQueueCurrent(): Promise<Withheld | null> {
+  const res = await attempt("/v1/queue/current");
+  if (!res || res.status !== 409) return null;
   try {
-    const res = await fetch(`${API_BASE}/v1/queue/current`, {
-      next: { revalidate: 300 },
-      headers: { accept: "application/json" },
-    });
-    const body = await res.json();
-    if (res.status === 409) return body as Withheld;
-    return null;
+    return (await res.json()) as Withheld;
   } catch {
     return null;
   }
