@@ -74,7 +74,8 @@ jobs:
         run: |
           python -m embargo.ingest \
             --job "${{ inputs.job || 'daily' }}" \
-            --history-budget "${{ inputs.history_budget || '400' }}"             --history-minutes "${{ inputs.history_minutes || '25' }}"
+            --history-budget "${{ inputs.history_budget || '400' }}" \
+            --history-minutes "${{ inputs.history_minutes || '25' }}"
 
   probe:
     # The source characterisation, re-run weekly. Its job is to notice when
