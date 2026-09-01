@@ -163,11 +163,17 @@ adopted after meeting the first awkward record is a convention chosen to taste.
 - [x] Disclosure measured and passed
 - [x] Source will serve an honest user agent
 - [x] Probe artifact committed
-- [ ] Append-only tests run green against a real Postgres in CI
+- [x] Append-only tests run green against a real Postgres in CI
 - [ ] Collector has completed one unattended daily run
 - [ ] Seven consecutive daily runs with no gap in the run log
 
-The last three need a database and a scheduler, not more code.
+The append-only box was ticked on 2026-08-30: CI's `database` job provisions
+through `embargo.bootstrap` and runs `tests/test_append_only.py` as
+`embargo_app`, 10 passed, with the workflow failing the build if those tests
+*skip* rather than run.
+
+The last two need a scheduler and a calendar, not more code. The first
+scheduled run fires at 07:00 UTC on 2026-08-31.
 
 ---
 
